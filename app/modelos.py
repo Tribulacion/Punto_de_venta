@@ -134,7 +134,6 @@ class ProveedorDAO:
                 log.debug(f'Proveedor eliminado: {proveedor}')
                 return cursor.rowcount
 
-
 class UsuarioDAO:
     # Metodo estatico para aumentar el id
     @staticmethod
@@ -290,6 +289,7 @@ class UsuarioDAO:
                 log.debug(f'Usuario eliminado: {usuario}')
                 return cursor.rowcount
 
+    # Métodos de busqueda ==============================================================================================
     @classmethod
     def buscar_por_correo(cls, correo):
         with Conexion.obtener_conexion() as conexion:
@@ -299,6 +299,255 @@ class UsuarioDAO:
                 log.debug(f'Usuario encontrado: {usuario}')
                 return usuario
 
+    @classmethod
+    def mostrar_usuarios_administradores(cls):
+        with Conexion.obtener_conexion() as conexion:
+            with conexion.cursor() as cursor:
+                cursor.execute(f"SELECT * FROM usuarios WHERE rol = 'Administrador'")
+                usuarios = cursor.fetchall()
+                log.debug(f'Usuarios encontrados: {usuarios}')
+                return usuarios
+
+class ProductoDAO:
+    """
+    create table productos (
+    id bigint primary key generated always as identity,
+    nombre text not null,
+    descripcion text,
+    precio numeric(10, 2) not null,
+    stock_actual int not null,
+    stock_minimo int not null,
+    codigo_barras text unique not null,
+    id_proveedor bigint references proveedores (id)
+    );
+    """
+    @staticmethod
+    def aumentar_id():
+        with Conexion.obtener_conexion() as conexion:
+            with conexion.cursor() as cursor:
+                cursor.execute("SELECT MAX(id) FROM productos")
+                id = cursor.fetchone()[0]
+                if id is None:
+                    log.debug('No hay productos, se asigna id 1')
+                    return 1
+                log.debug(f'Id aumentado: {id + 1}')
+                return id + 1
+
+    # Sentencias SQL ===================================================================================================
+    _SELECT = "SELECT * FROM productos"
+    _INSERT = "INSERT INTO productos(nombre, descripcion, precio, stock_actual, stock_minimo, codigo_barras, id_proveedor) VALUES(%s, %s, %s, %s, %s, %s, %s)"
+    _UPDATE = "UPDATE productos SET nombre=%s, descripcion=%s, precio=%s, stock_actual=%s, stock_minimo=%s, codigo_barras=%s, id_proveedor=%s WHERE id=%s"
+    _DELETE = "DELETE FROM productos WHERE id=%s"
+
+    # Constructor ======================================================================================================
+    def __init__(self, nombre:str, descripcion:str, precio:float, stock_actual:int, stock_minimo:int, codigo_barras:str, id_proveedor:int):
+        self.id_producto = self.aumentar_id()
+        self.nombre = nombre
+        self.descripcion = descripcion
+        self.precio = precio
+        self.stock_actual = stock_actual
+        self.stock_minimo = stock_minimo
+        self.codigo_barras = codigo_barras
+        self.id_proveedor = id_proveedor
+
+    # Setters y Getters ================================================================================================
+    @property
+    def id_producto(self):
+        log.debug(f'Obteniendo id: {self._id_producto}')
+        return self._id_producto
+
+    @id_producto.setter
+    def id_producto(self, id: int):
+        self._id_producto = id
+        log.debug(f'Asignando id: {self._id_producto}')
+
+    @property
+    def nombre(self):
+        log.debug(f'Obteniendo nombre: {self._nombre}')
+        return self._nombre
+
+    @nombre.setter
+    def nombre(self, nombre:str):
+        if not isinstance(nombre, str):
+            log.debug(f'Nombre debe ser de tipo str')
+            raise ValueError('Nombre debe ser de tipo str')
+        self._nombre = nombre
+        log.debug(f'Asignando nombre: {self._nombre}')
+
+    @property
+    def descripcion(self):
+        log.debug(f'Obteniendo descripcion: {self._descripcion}')
+        return self._descripcion
+
+    @descripcion.setter
+    def descripcion(self, descripcion:str):
+        if not isinstance(descripcion, str):
+            log.debug(f'Descripcion debe ser de tipo str')
+            raise ValueError('Descripcion debe ser de tipo str')
+        self._descripcion = descripcion
+        log.debug(f'Asignando descripcion: {self._descripcion}')
+
+    @property
+    def precio(self):
+        log.debug(f'Obteniendo precio: {self._precio}')
+        return self._precio
+
+    @precio.setter
+    def precio(self, precio:float):
+        if not isinstance(precio, float):
+            log.debug(f'Precio debe ser de tipo float')
+            raise ValueError('Precio debe ser de tipo float')
+        self._precio = precio
+        log.debug(f'Asignando precio: {self._precio}')
+
+    @property
+    def stock_actual(self):
+        log.debug(f'Obteniendo stock actual: {self._stock_actual}')
+        return self._stock_actual
+
+    @stock_actual.setter
+    def stock_actual(self, stock_actual:int):
+        if not isinstance(stock_actual, int):
+            log.debug(f'Stock actual debe ser de tipo int')
+            raise ValueError('Stock actual debe ser de tipo int')
+        self._stock_actual = stock_actual
+        log.debug(f'Asignando stock actual: {self._stock_actual}')
+
+    @property
+    def stock_minimo(self):
+        log.debug(f'Obteniendo stock minimo: {self._stock_minimo}')
+        return self._stock_minimo
+
+    @stock_minimo.setter
+    def stock_minimo(self, stock_minimo:int):
+        if not isinstance(stock_minimo, int):
+            log.debug(f'Stock minimo debe ser de tipo int')
+            raise ValueError('Stock minimo debe ser de tipo int')
+        self._stock_minimo = stock_minimo
+        log.debug(f'Asignando stock minimo: {self._stock_minimo}')
+
+    @property
+    def codigo_barras(self):
+        log.debug(f'Obteniendo codigo de barras: {self._codigo_barras}')
+        return self._codigo_barras
+
+    @codigo_barras.setter
+    def codigo_barras(self, codigo_barras:str):
+        if not isinstance(codigo_barras, str):
+            log.debug(f'Codigo de barras debe ser de tipo str')
+            raise ValueError('Codigo de barras debe ser de tipo str')
+        self._codigo_barras = codigo_barras
+        log.debug(f'Asignando codigo de barras: {self._codigo_barras}')
+
+    @property
+    def id_proveedor(self):
+        log.debug(f'Obteniendo id de proveedor: {self._id_proveedor}')
+        return self._id_proveedor
+
+    @id_proveedor.setter
+    def id_proveedor(self, id_proveedor:int):
+        if not isinstance(id_proveedor, int):
+            log.debug(f'Id de proveedor debe ser de tipo int')
+            raise ValueError('Id de proveedor debe ser de tipo int')
+        self._id_proveedor = id_proveedor
+        log.debug(f'Asignando id de proveedor: {self._id_proveedor}')
+
+    # Métodos especiales ===============================================================================================
+    def __str__(self):
+        log.debug(f'Obteniendo representacion en cadena')
+        return f'Producto: {self.id_producto} {self.nombre} {self.descripcion} {self.precio} {self.stock_actual} {self.stock_minimo} {self.codigo_barras} {self.id_proveedor}'
+
+    # Métodos estáticos ================================================================================================
+    @classmethod
+    def seleccionar(cls):
+        with Conexion.obtener_conexion() as conexion:
+            with conexion.cursor() as cursor:
+                cursor.execute(cls._SELECT)
+                registros = cursor.fetchall()
+                log.debug(f'Metodo seleccionar productos')
+                return registros
+
+    @classmethod
+    def insertar(cls, producto):
+        with Conexion.obtener_conexion() as conexion:
+            with conexion.cursor() as cursor:
+                valores = (producto.nombre, producto.descripcion, producto.precio, producto.stock_actual, producto.stock_minimo, producto.codigo_barras, producto.id_proveedor)
+                cursor.execute(cls._INSERT, valores)
+                log.debug(f'Producto insertado: {producto}')
+                return cursor.rowcount
+
+    @classmethod
+    def actualizar(cls, producto):
+        with Conexion.obtener_conexion() as conexion:
+            with conexion.cursor() as cursor:
+                # Verificar si el producto existe
+                if not cls.buscar_por_id(producto.id_producto):
+                    log.debug(f'Producto con id {producto.id_producto} no existe')
+                    return 0
+                # Actualizar el producto
+                valores = (producto.nombre, producto.descripcion, producto.precio, producto.stock_actual, producto.stock_minimo, producto.codigo_barras, producto.id_proveedor, producto.id_producto)
+                cursor.execute(cls._UPDATE, valores)
+                conexion.commit()
+                log.debug(f'Producto actualizado: {producto}')
+                return cursor.rowcount
+
+    @classmethod
+    def eliminar(cls, producto):
+        with Conexion.obtener_conexion() as conexion:
+            with conexion.cursor() as cursor:
+                valores = (producto.id_producto,)
+                cursor.execute(cls._DELETE, valores)
+                log.debug(f'Producto eliminado: {producto}')
+                return cursor.rowcount
+
+    # Métodos de busqueda ==============================================================================================
+    @classmethod
+    def buscar_por_codigo_barras(cls, codigo_barras):
+        with Conexion.obtener_conexion() as conexion:
+            with conexion.cursor() as cursor:
+                cursor.execute(f"SELECT * FROM productos WHERE codigo_barras = '{codigo_barras}'")
+                producto = cursor.fetchone()
+                log.debug(f'Producto encontrado: {producto}')
+                return producto
+
+    @classmethod
+    def buscar_por_nombre(cls, nombre):
+        with Conexion.obtener_conexion() as conexion:
+            with conexion.cursor() as cursor:
+                cursor.execute(f"SELECT * FROM productos WHERE nombre = '{nombre}'")
+                producto = cursor.fetchone()
+                log.debug(f'Producto encontrado: {producto}')
+                return producto
+
+    @classmethod
+    def buscar_por_proveedor(cls, id_proveedor):
+        with Conexion.obtener_conexion() as conexion:
+            with conexion.cursor() as cursor:
+                cursor.execute(f"SELECT * FROM productos WHERE id_proveedor = {id_proveedor}")
+                productos = cursor.fetchall()
+                log.debug(f'Productos encontrados: {productos}')
+                return productos
+
+    @classmethod
+    def buscar_por_id(cls, id_producto):
+        with Conexion.obtener_conexion() as conexion:
+            with conexion.cursor() as cursor:
+                cursor.execute(f"SELECT * FROM productos WHERE id = {id_producto}")
+                producto = cursor.fetchone()
+                log.debug(f'Producto encontrado: {producto}')
+                return producto
+
+class VentasDAO:
+    pass
+
+class DetalleVentaDAO:
+    pass
+
+class PromocionesDAO:
+    pass
+
+class HistorialProductoDAO:
+    pass
 
 # Funciones de prueba ==================================================================================================
 def encriptar_contrasena(contrasena: str):
@@ -344,4 +593,40 @@ if __name__ == '__main__':
     usuarios = UsuarioDAO.seleccionar()
     for usuario in usuarios:
         print(usuario)"""
-    
+
+    # Prueba de ProductoDAO
+    # # Insertar un producto
+    # producto = ProductoDAO(nombre='Producto 1', descripcion='Descripcion 1', precio=100.0, stock_actual=10, stock_minimo=5, codigo_barras='1234567890', id_proveedor=2)
+    # ProductoDAO.insertar(producto)
+    # log.debug(f'Producto insertado: {producto}')
+
+    # Seleccionar productos
+    productos = ProductoDAO.seleccionar()
+    for producto in productos:
+        log.debug(producto)
+    #
+    # Actualizar un producto
+    producto = ProductoDAO(nombre='Producto 1 Actualizado', descripcion='Descripcion 1 Actualizada', precio=200.0, stock_actual=20, stock_minimo=10, codigo_barras='1234567890', id_proveedor=2)
+    ProductoDAO.actualizar(producto)
+    log.debug(f'Producto actualizado: {producto}')
+    #
+    # # Eliminar un producto
+    # producto = ProductoDAO(id_producto=1)
+    # ProductoDAO.eliminar(producto)
+    # log.debug(f'Producto eliminado: {producto}')
+    #
+    # # Buscar producto por codigo de barras
+    # producto = ProductoDAO.buscar_por_codigo_barras('1234567890')
+    # log.debug(f'Producto encontrado: {producto}')
+    #
+    # # Buscar producto por nombre
+    # producto = ProductoDAO.buscar_por_nombre('Producto 1 Actualizado')
+    # log.debug(f'Producto encontrado: {producto}')
+    #
+    # # Buscar producto por proveedor
+    # productos = ProductoDAO.buscar_por_proveedor(2)
+    # log.debug(f'Productos encontrados: {productos}')
+    #
+    # # Buscar producto por id
+    # producto = ProductoDAO.buscar_por_id(1)
+    # log.debug(f'Producto encontrado: {producto}')
