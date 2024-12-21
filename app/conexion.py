@@ -35,13 +35,13 @@ class Conexion:
     @classmethod
     def obtener_conexion(cls):
         conexion = cls.obtener_pool().getconn()
-        log.debug(f'Conexión obtenida del pool: {conexion}')
+        log.debug(f'Conexión obtenida del pool')
         return conexion
 
     @classmethod
     def liberar_conexion(cls, conexion):
         cls.obtener_pool().putconn(conexion)
-        log.debug(f'Regresamos la conexión al pool: {conexion}')
+        log.debug(f'Regresamos la conexión al pool')
 
     @classmethod
     def cerrar_conexiones(cls):

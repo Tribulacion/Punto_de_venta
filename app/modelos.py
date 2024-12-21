@@ -3,7 +3,7 @@ Definicion de los modelos de la base de datos (tablas)
 """
 import hashlib
 from logger_base import log
-from conexion import Conexion
+from app.conexion import Conexion
 
 # Clases de los modelos ================================================================================================
 class ProveedorDAO:
@@ -601,15 +601,15 @@ if __name__ == '__main__':
     # log.debug(f'Producto insertado: {producto}')
 
     # Seleccionar productos
-    productos = ProductoDAO.seleccionar()
-    for producto in productos:
-        log.debug(producto)
-    #
-    # Actualizar un producto
-    producto = ProductoDAO(nombre='Producto 1 Actualizado', descripcion='Descripcion 1 Actualizada', precio=200.0, stock_actual=20, stock_minimo=10, codigo_barras='1234567890', id_proveedor=2)
-    ProductoDAO.actualizar(producto)
-    log.debug(f'Producto actualizado: {producto}')
-    #
+    # productos = ProductoDAO.seleccionar()
+    # for producto in productos:
+    #     log.debug(producto)
+    # #
+    # # Actualizar un producto
+    # producto = ProductoDAO(nombre='Producto 1 Actualizado', descripcion='Descripcion 1 Actualizada', precio=200.0, stock_actual=20, stock_minimo=10, codigo_barras='1234567890', id_proveedor=2)
+    # ProductoDAO.actualizar(producto)
+    # log.debug(f'Producto actualizado: {producto}')
+    # #
     # # Eliminar un producto
     # producto = ProductoDAO(id_producto=1)
     # ProductoDAO.eliminar(producto)
