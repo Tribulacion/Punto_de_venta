@@ -308,6 +308,15 @@ class UsuarioDAO:
                 log.debug(f'Usuarios encontrados: {usuarios}')
                 return usuarios
 
+    @classmethod
+    def seleccionar_por_id(cls, id_usuario):
+        with Conexion.obtener_conexion() as conexion:
+            with conexion.cursor() as cursor:
+                cursor.execute(f"SELECT * FROM usuarios WHERE id = {id_usuario}")
+                usuario = cursor.fetchone()
+                log.debug(f'Usuario encontrado')
+                return usuario
+
 class ProductoDAO:
     """
     create table productos (
