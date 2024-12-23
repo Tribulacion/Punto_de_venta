@@ -460,15 +460,33 @@ class VentanaPrincipal(tk.Tk):
                                 fg='white')
         lbl_filtro.grid(row=0, column=0, padx=10, pady=10)
 
-        filtros = ['Todos', 'Administrador', 'Usuario']
+        filtros = ['Todos', 'Administrador', 'Cajero']
 
-        combobox = ttk.Combobox(self.frame_usuarios_filtro, values=filtros)
-        combobox.grid(row=0, column=1, padx=10, pady=10)
+        self.combobox = ttk.Combobox(self.frame_usuarios_filtro, values=filtros)
+        self.combobox.grid(row=0, column=1, padx=10, pady=10)
 
         # Seleccionamos un elemento por default a mostrar
-        combobox.current(0)
+        self.combobox.current(0)
 
-        # Aqui se puede agregar la funcion para que al seleccionar un elemento se filtre la tabla sin necesidad de un boton****************
+        # Asociar el evento de selección al combobox
+        self.combobox.bind("<<ComboboxSelected>>", self.filtrar_usuarios)
+
+    def filtrar_usuarios(self, event):
+        filtro = self.combobox.get()
+        log.debug(f"Filtrando usuarios por tipo: {filtro}")
+
+        # Limpiar la tabla
+        for item in self.tabla_usuarios.get_children():
+            self.tabla_usuarios.delete(item)
+
+        # Cargar los registros filtrados
+        if filtro == 'Todos':
+            usuarios = UsuarioDAO.seleccionar()
+        else:
+            usuarios = [usuario for usuario in UsuarioDAO.seleccionar() if usuario[5] == filtro]
+
+        for usuario in usuarios:
+            self.tabla_usuarios.insert(parent='', index=tk.END, values=(usuario[0], f'{usuario[1]} {usuario[2]}', usuario[5]))
 
     # Falta implementar la funcion de los usuarios********************************************************************************
     def mostrar_botones_usuarios(self):
