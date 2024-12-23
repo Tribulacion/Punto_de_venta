@@ -255,67 +255,76 @@ class UsuarioDAO:
     # Métodos estáticos ================================================================================================
     @classmethod
     def seleccionar(cls):
-        with Conexion.obtener_conexion() as conexion:
+        conexion = Conexion.obtener_conexion()
+        try:
             with conexion.cursor() as cursor:
                 cursor.execute(cls._SELECT)
                 registros = cursor.fetchall()
                 log.debug(f'Metodo seleccionar usuarios')
                 return registros
+        finally:
+            Conexion.liberar_conexion(conexion)
 
     @classmethod
     def insertar(cls, usuario):
-        with Conexion.obtener_conexion() as conexion:
+        conexion = Conexion.obtener_conexion()
+        try:
             with conexion.cursor() as cursor:
                 valores = (usuario.nombre, usuario.apellido, usuario.correo, usuario.contrasena, usuario.rol, usuario.telefono)
                 cursor.execute(cls._INSERT, valores)
                 log.debug(f'Usuario insertado: {usuario}')
                 return cursor.rowcount
+        finally:
+            Conexion.liberar_conexion(conexion)
 
     @classmethod
     def actualizar(cls, usuario):
-        with Conexion.obtener_conexion() as conexion:
+        conexion = Conexion.obtener_conexion()
+        try:
             with conexion.cursor() as cursor:
                 valores = (usuario.nombre, usuario.apellido, usuario.correo, usuario.contrasena, usuario.rol, usuario.telefono, usuario.id_usuario)
                 cursor.execute(cls._UPDATE, valores)
                 log.debug(f'Usuario actualizado: {usuario}')
                 return cursor.rowcount
+        finally:
+            Conexion.liberar_conexion(conexion)
 
     @classmethod
     def eliminar(cls, usuario):
-        with Conexion.obtener_conexion() as conexion:
+        conexion = Conexion.obtener_conexion()
+        try:
             with conexion.cursor() as cursor:
                 valores = (usuario.id_usuario,)
                 cursor.execute(cls._DELETE, valores)
                 log.debug(f'Usuario eliminado: {usuario}')
                 return cursor.rowcount
+        finally:
+            Conexion.liberar_conexion(conexion)
 
     # Métodos de busqueda ==============================================================================================
     @classmethod
-    def buscar_por_correo(cls, correo):
-        with Conexion.obtener_conexion() as conexion:
-            with conexion.cursor() as cursor:
-                cursor.execute(f"SELECT * FROM usuarios WHERE correo = '{correo}'")
-                usuario = cursor.fetchone()
-                log.debug(f'Usuario encontrado: {usuario}')
-                return usuario
-
-    @classmethod
     def mostrar_usuarios_administradores(cls):
-        with Conexion.obtener_conexion() as conexion:
+        conexion = Conexion.obtener_conexion()
+        try:
             with conexion.cursor() as cursor:
                 cursor.execute(f"SELECT * FROM usuarios WHERE rol = 'Administrador'")
                 usuarios = cursor.fetchall()
                 log.debug(f'Usuarios encontrados: {usuarios}')
                 return usuarios
+        finally:
+            Conexion.liberar_conexion(conexion)
 
     @classmethod
     def seleccionar_por_id(cls, id_usuario):
-        with Conexion.obtener_conexion() as conexion:
+        conexion = Conexion.obtener_conexion()
+        try:
             with conexion.cursor() as cursor:
                 cursor.execute(f"SELECT * FROM usuarios WHERE id = {id_usuario}")
                 usuario = cursor.fetchone()
                 log.debug(f'Usuario encontrado')
                 return usuario
+        finally:
+            Conexion.liberar_conexion(conexion)
 
 class ProductoDAO:
     """

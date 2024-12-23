@@ -10,7 +10,7 @@ class Conexion:
     _DB_PORT = '5432'
     _HOST = '127.0.0.1'
     _MIN_CON = 1
-    _MAX_CON = 5
+    _MAX_CON = 10
     _pool = None
 
     @classmethod
