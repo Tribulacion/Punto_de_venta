@@ -4,7 +4,7 @@ import sys
 
 
 class Conexion:
-    _DATABASE = 'punto_venta'
+    _DATABASE = 'punto_venta_pruebas'  # Cambiar al finalizar las pruebas
     _USERNAME = 'postgres'
     _PASSWORD = 'admin'
     _DB_PORT = '5432'

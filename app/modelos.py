@@ -6,24 +6,10 @@ from logger_base import log
 from app.conexion import Conexion
 
 # Clases de los modelos ================================================================================================
-class ProveedorDAO:
-    # Sentencias SQL ===================================================================================================
-    _SELECT = "SELECT * FROM proveedores"
-    _INSERT = "INSERT INTO proveedores(nombre, telefono, correo, direccion) VALUES(%s, %s, %s, %s)"
-    _UPDATE = "UPDATE proveedores SET nombre=%s, telefono=%s, correo=%s, direccion=%s WHERE id=%s"
-    _DELETE = "DELETE FROM proveedores WHERE id=%s"
-
-    @staticmethod
-    def aumentar_id():
-        with Conexion.obtener_conexion() as conexion:
-            with conexion.cursor() as cursor:
-                cursor.execute("SELECT MAX(id) FROM proveedores")
-                id = cursor.fetchone()[0]
-                return id + 1
-
+class Proveedor:
     # Constructor ======================================================================================================
-    def __init__(self, nombre:str=None, telefono:str=None, correo:str=None, direccion:str=None):
-        self.id_proveedor = self.aumentar_id()
+    def __init__(self, id:int=None, nombre: str = None, telefono:str = None, correo:str = None, direccion:str=None):
+        self.id_proveedor = id
         self.nombre = nombre
         self.telefono = telefono
         self.correo = correo
@@ -97,64 +83,11 @@ class ProveedorDAO:
         log.debug(f'Obteniendo representacion en cadena')
         return f'Proveedor: {self.id_proveedor} {self.nombre} {self.telefono} {self.correo} {self.direccion}'
 
-    # Metodos estaticos ================================================================================================
-    @classmethod
-    def seleccionar(cls):
-        with Conexion.obtener_conexion() as conexion:
-            with conexion.cursor() as cursor:
-                cursor.execute(cls._SELECT)
-                registros = cursor.fetchall()
-                log.debug(f'Metodo seleccionar proveedores')
-                return registros
 
-    @classmethod
-    def insertar(cls, proveedor):
-        with Conexion.obtener_conexion() as conexion:
-            with conexion.cursor() as cursor:
-                valores = (proveedor.nombre, proveedor.telefono, proveedor.correo, proveedor.direccion)
-                cursor.execute(cls._INSERT, valores)
-                log.debug(f'Proveedor insertado: {proveedor}')
-                return cursor.rowcount
-
-    @classmethod
-    def actualizar(cls, proveedor):
-        with Conexion.obtener_conexion() as conexion:
-            with conexion.cursor() as cursor:
-                valores = (proveedor.nombre, proveedor.telefono, proveedor.correo, proveedor.direccion, proveedor.id_proveedor)
-                cursor.execute(cls._UPDATE, valores)
-                log.debug(f'Proveedor actualizado: {proveedor}')
-                return cursor.rowcount
-
-    @classmethod
-    def eliminar(cls, proveedor):
-        with Conexion.obtener_conexion() as conexion:
-            with conexion.cursor() as cursor:
-                valores = (proveedor.id_proveedor,)
-                cursor.execute(cls._DELETE, valores)
-                log.debug(f'Proveedor eliminado: {proveedor}')
-                return cursor.rowcount
-
-class UsuarioDAO:
-    # Metodo estatico para aumentar el id
-    @staticmethod
-    def aumentar_id():
-        with Conexion.obtener_conexion() as conexion:
-            with conexion.cursor() as cursor:
-                cursor.execute("SELECT MAX(id) FROM usuarios")
-                id = cursor.fetchone()[0]
-                if id is None:
-                    return 1
-                return id + 1
-
-    # Sentencias SQL ===================================================================================================
-    _SELECT = "SELECT * FROM usuarios"
-    _INSERT = "INSERT INTO usuarios(nombre, apellido, correo, contrasena, rol, telefono) VALUES(%s, %s, %s, %s, %s, %s)"
-    _UPDATE = "UPDATE usuarios SET nombre=%s, apellido=%s, correo=%s, contrasena=%s, rol=%s, telefono=%s WHERE id=%s"
-    _DELETE = "DELETE FROM usuarios WHERE id=%s"
-
+class Usuario:
     # Constructor ======================================================================================================
-    def __init__(self, nombre:str, apellido:str, correo:str, contrasena:str, rol:str, telefono:str):
-        self.id_usuario = self.aumentar_id()
+    def __init__(self, id:int, nombre:str, apellido:str, correo:str, contrasena:str, rol:str, telefono:str):
+        self.id_usuario = id
         self.nombre = nombre
         self.apellido = apellido
         self.correo = correo
@@ -170,6 +103,15 @@ class UsuarioDAO:
 
     @id_usuario.setter
     def id_usuario(self, id):
+        if not isinstance(id, int):
+            raise ValueError('Id debe ser de tipo int')
+        if id < 0:
+            raise ValueError('Id no puede ser negativo')
+        if id is None:
+            raise ValueError('Id no puede ser nulo')
+        if id == 0:
+            raise ValueError('Id no puede ser 0')
+
         self._id_usuario = id
         log.debug(f'Asignando id: {self._id_usuario}')
 
@@ -219,7 +161,7 @@ class UsuarioDAO:
         if not isinstance(contrasena, str):
             raise ValueError('Contraseña debe ser de tipo str')
         # Encriptar la contrasena
-        self._contrasena = encriptar_contrasena(contrasena)
+        self._contrasena = contrasena
         log.debug(f'Asignando contraseña')
 
     @property
@@ -252,79 +194,7 @@ class UsuarioDAO:
         return f'''Usuario: {self.id_usuario} {self.nombre} {self.apellido} {self.correo} {self.rol} {self.telefono}
                     Contraseña: {self.contrasena}'''
 
-    # Métodos estáticos ================================================================================================
-    @classmethod
-    def seleccionar(cls):
-        conexion = Conexion.obtener_conexion()
-        try:
-            with conexion.cursor() as cursor:
-                cursor.execute(cls._SELECT)
-                registros = cursor.fetchall()
-                log.debug(f'Metodo seleccionar usuarios')
-                return registros
-        finally:
-            Conexion.liberar_conexion(conexion)
 
-    @classmethod
-    def insertar(cls, usuario):
-        conexion = Conexion.obtener_conexion()
-        try:
-            with conexion.cursor() as cursor:
-                valores = (usuario.nombre, usuario.apellido, usuario.correo, usuario.contrasena, usuario.rol, usuario.telefono)
-                cursor.execute(cls._INSERT, valores)
-                log.debug(f'Usuario insertado: {usuario}')
-                return cursor.rowcount
-        finally:
-            Conexion.liberar_conexion(conexion)
-
-    @classmethod
-    def actualizar(cls, usuario):
-        conexion = Conexion.obtener_conexion()
-        try:
-            with conexion.cursor() as cursor:
-                valores = (usuario.nombre, usuario.apellido, usuario.correo, usuario.contrasena, usuario.rol, usuario.telefono, usuario.id_usuario)
-                cursor.execute(cls._UPDATE, valores)
-                log.debug(f'Usuario actualizado: {usuario}')
-                return cursor.rowcount
-        finally:
-            Conexion.liberar_conexion(conexion)
-
-    @classmethod
-    def eliminar(cls, usuario):
-        conexion = Conexion.obtener_conexion()
-        try:
-            with conexion.cursor() as cursor:
-                valores = (usuario.id_usuario,)
-                cursor.execute(cls._DELETE, valores)
-                log.debug(f'Usuario eliminado: {usuario}')
-                return cursor.rowcount
-        finally:
-            Conexion.liberar_conexion(conexion)
-
-    # Métodos de busqueda ==============================================================================================
-    @classmethod
-    def mostrar_usuarios_administradores(cls):
-        conexion = Conexion.obtener_conexion()
-        try:
-            with conexion.cursor() as cursor:
-                cursor.execute(f"SELECT * FROM usuarios WHERE rol = 'Administrador'")
-                usuarios = cursor.fetchall()
-                log.debug(f'Usuarios encontrados: {usuarios}')
-                return usuarios
-        finally:
-            Conexion.liberar_conexion(conexion)
-
-    @classmethod
-    def seleccionar_por_id(cls, id_usuario):
-        conexion = Conexion.obtener_conexion()
-        try:
-            with conexion.cursor() as cursor:
-                cursor.execute(f"SELECT * FROM usuarios WHERE id = {id_usuario}")
-                usuario = cursor.fetchone()
-                log.debug(f'Usuario encontrado')
-                return usuario
-        finally:
-            Conexion.liberar_conexion(conexion)
 
 class ProductoDAO:
     """
@@ -648,3 +518,4 @@ if __name__ == '__main__':
     # # Buscar producto por id
     # producto = ProductoDAO.buscar_por_id(1)
     # log.debug(f'Producto encontrado: {producto}')
+    print(f'Hash de la contraseña: {encriptar_contrasena("admin")}')

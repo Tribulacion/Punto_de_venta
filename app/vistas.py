@@ -3,7 +3,8 @@ Definición de las ventanas de la aplicación
 """
 import tkinter as tk
 from tkinter import ttk, messagebox
-from app.modelos import UsuarioDAO, encriptar_contrasena
+from app.modelos_dao import UsuarioDAO
+from app.modelos import Usuario, encriptar_contrasena
 from logger_base import log
 
 COLOR_FONDO = '#1A3E66'                 # Azul Oscuro
@@ -404,6 +405,13 @@ class VentanaPrincipal(tk.Tk):
         self.mostrar_contenido_ventana_usuarios()
 
     # Ventana de usuarios ==============================================================================================
+    """
+    Funciones de configuración: Funciones que configuran la ventana y los elementos de la interfaz.
+    Funciones de creación de elementos: Funciones que crean los diferentes elementos de la interfaz.
+    Funciones de manejo de eventos: Funciones que manejan los eventos de los botones y otros elementos interactivos.
+    Funciones de validación: Funciones que validan los datos ingresados por el usuario.
+    Funciones de utilidad: Funciones auxiliares que no encajan en las otras categorías.
+    """
     def crear_ventana_mostrar_usuarios(self):
         log.debug("Creando ventana de usuarios")
         self.ventana_usuarios = tk.Toplevel(self)
@@ -451,7 +459,6 @@ class VentanaPrincipal(tk.Tk):
         self.mostrar_tabla_usuarios()
         self.mostrar_formulario_usuarios()
 
-    # Falta implementar la funcion del filtro********************************************************************************
     def mostrar_filtro_usuarios(self):
         log.debug("Mostrando filtro de usuarios")
         lbl_filtro = tk.Label(self.frame_usuarios_filtro,
@@ -488,18 +495,17 @@ class VentanaPrincipal(tk.Tk):
         for usuario in usuarios:
             self.tabla_usuarios.insert(parent='', index=tk.END, values=(usuario[0], f'{usuario[1]} {usuario[2]}', usuario[5]))
 
-    # Falta implementar la funcion de los usuarios********************************************************************************
     def mostrar_botones_usuarios(self):
         log.debug("Mostrando botones de usuarios")
 
         btn_nuevo = ttk.Button(self.frame_usuarios_botones,
                                 text='Nuevo',
-                                command=lambda: print('Nuevo'))
+                                command=self.agregar_usuario)  # implementando funcion de agregar usuario
         btn_nuevo.grid(row=0, column=0, pady=10, padx=5)
 
         btn_guardar = ttk.Button(self.frame_usuarios_botones,
                                 text='Guardar',
-                                command=lambda: print('Guardar'))
+                                command=self.guardar_cambios_mostrar_usuario)  # implementando funcion de guardar usuario
         btn_guardar.grid(row=0, column=1, pady=10, padx=5)
 
         btn_deshacer = ttk.Button(self.frame_usuarios_botones,
@@ -509,7 +515,7 @@ class VentanaPrincipal(tk.Tk):
 
         btn_editar = ttk.Button(self.frame_usuarios_botones,
                                 text='Editar',
-                                command=lambda: print('Editar'))
+                                command=self.editar_usuario)  # implementando funcion de editar usuario
         btn_editar.grid(row=0, column=3, pady=10, padx=5)
 
         btn_buscar = ttk.Button(self.frame_usuarios_botones,
@@ -521,6 +527,131 @@ class VentanaPrincipal(tk.Tk):
                                 text='Eliminar',
                                 command=lambda: print('Eliminar'))
         btn_eliminar.grid(row=0, column=5, pady=10, padx=5)
+
+    def agregar_usuario(self):
+        log.debug("Agregando usuario")
+        self.limpiar_formulario_usuarios()
+        self.habilitar_todos_los_campos_formulario_usuarios()
+
+        nuevo_id = UsuarioDAO.aumentar_id()
+        self.txt_id_usuario.config(state='normal')
+        self.txt_id_usuario.delete(0, tk.END)
+        self.txt_id_usuario.insert(0, nuevo_id)
+        self.txt_id_usuario.config(state='disabled')
+        self.txt_nombre_usuario.focus()
+
+    def editar_usuario(self):
+        log.debug("Editando usuario")
+        self.habilitar_todos_los_campos_formulario_usuarios()
+        self.txt_id_usuario.config(state='disabled')
+
+    def guardar_cambios_mostrar_usuario(self):
+        log.debug("Guardando cambios en usuario")
+        if not self.validar_todos_campos_formulario_usuarios():
+            log.debug("Campos del formulario de usuarios no válidos")
+            return
+
+        id_usuario = int(self.txt_id_usuario.get())
+        nombre_completo = self.txt_nombre_usuario.get()
+        nombre = nombre_completo.split(' ')[0]
+        apellido = nombre_completo.split(' ')[1] if len(nombre_completo.split(' ')) > 1 else nombre
+        correo = self.txt_correo_usuario.get()
+        rol = self.txt_rol_usuario.get() if self.txt_rol_usuario.get() == 'Administrador' else 'Cajero'
+        telefono = self.txt_telefono_usuario.get()
+        contrasena = self.txt_contrasenna_usuario.get()
+
+        usuario_existente = UsuarioDAO.seleccionar_por_id(id_usuario=id_usuario)
+
+        if usuario_existente:
+            if contrasena:
+                contrasena = encriptar_contrasena(contrasena)
+                UsuarioDAO.actualizar(nombre, apellido, correo, contrasena, rol, telefono, id_usuario)
+            else:
+                UsuarioDAO.actualizar(nombre, apellido, correo, usuario_existente[4], rol, telefono, id_usuario)
+            log.debug("Usuario actualizado con éxito")
+            messagebox.showinfo("Éxito", "Usuario actualizado con éxito")
+        else:
+            if contrasena:
+                contrasena = encriptar_contrasena(contrasena)
+            nuevo_usuario = Usuario(id=id_usuario, nombre=nombre, apellido=apellido, correo=correo, contrasena=contrasena, rol=rol, telefono=telefono)
+            UsuarioDAO.insertar(nuevo_usuario)
+            log.debug("Nuevo usuario agregado")
+            messagebox.showinfo("Éxito", "Nuevo usuario agregado con éxito")
+
+        self.cerrar_y_reabrir_ventana_usuarios()
+
+    def cerrar_y_reabrir_ventana_usuarios(self):
+        log.debug("Cerrando y reabriendo ventana de usuarios")
+        self.ventana_usuarios.destroy()
+        self.mostrar_usuarios()
+
+    def actualizar_datos_de_usuario(self):
+        log.debug("Actualizando datos de usuario")
+
+        # Antes de actualizar los datos verificamos si el usuario esta en la base de datos, en caso de que no este
+        # se agrega un nuevo usuario
+        registros = UsuarioDAO.seleccionar()
+        for registro in registros:
+            if registro[0] == int(self.txt_id_usuario.get()):
+                nombre_completo = self.txt_nombre_usuario.get()
+                nombre = nombre_completo.split(' ')[0]
+                apellido = nombre_completo.split(' ')[1]
+                correo = self.txt_correo_usuario.get()
+                rol = self.txt_rol_usuario.get() if self.txt_rol_usuario.get() == 'Administrador' else 'Cajero'
+                telefono = self.txt_telefono_usuario.get()
+                id_usuario = int(self.txt_id_usuario.get())
+
+                if self.txt_contrasenna_usuario.get():
+                    contrasena = encriptar_contrasena(self.txt_contrasenna_usuario.get())
+                    UsuarioDAO.actualizar_con_contrasena(nombre, apellido, correo, contrasena, rol, telefono, id_usuario)
+                    log.debug("Usuario actualizado con contraseña")
+                else:
+                    UsuarioDAO.actualizar_sin_contrasena(nombre=nombre, apellido=apellido, correo=correo,
+                                                            rol=rol, telefono=telefono, id_usuario=id_usuario)
+                    log.debug("Usuario actualizado sin contraseña")
+                return
+
+        # Si el usuario no está en la base de datos, se agrega un nuevo usuario
+        nombre_completo = self.txt_nombre_usuario.get()
+        nombre = nombre_completo.split(' ')[0]
+        apellido = nombre_completo.split(' ')[1]
+        correo = self.txt_correo_usuario.get()
+        contrasena = encriptar_contrasena(self.txt_contrasenna_usuario.get())
+        rol = self.txt_rol_usuario.get() if self.txt_rol_usuario.get() == 'Administrador' else 'Cajero'
+        telefono = self.txt_telefono_usuario.get()
+        id_usuario = int(self.txt_id_usuario.get())
+
+        nuevo_usuario = Usuario(id=id_usuario, nombre=nombre, apellido=apellido, correo=correo,
+                                contrasena=contrasena, rol=rol, telefono=telefono)
+        UsuarioDAO.insertar(nuevo_usuario)
+        log.debug("Nuevo usuario agregado")
+
+    def validar_todos_campos_formulario_usuarios(self):
+        log.debug("Validando campos del formulario de usuarios")
+        """
+        Validar que los campos no estén vacíos
+        """
+        if not self.txt_nombre_usuario.get():
+            messagebox.showwarning(title='Campo vacío', message='Por favor llene el campo de nombre')
+            self.txt_nombre_usuario.focus()
+            return False
+        if not self.txt_correo_usuario.get():
+            messagebox.showwarning(title='Campo vacío', message='Por favor llene el campo de correo')
+            self.txt_correo_usuario.focus()
+            return False
+        if not self.txt_rol_usuario.get():
+            messagebox.showwarning(title='Campo vacío', message='Por favor llene el campo de rol')
+            self.txt_rol_usuario.focus()
+            return False
+        if not self.txt_telefono_usuario.get():
+            messagebox.showwarning(title='Campo vacío', message='Por favor llene el campo de telefono')
+            self.txt_telefono_usuario.focus()
+            return False
+        # if not self.txt_contrasenna_usuario.get():
+        #     messagebox.showwarning(title='Campo vacío', message='Por favor llene el campo de contraseña')
+        #     self.txt_contrasenna_usuario.focus()
+        #     return False
+        return True
 
     def mostrar_tabla_usuarios(self):
         log.debug("Mostrando tabla de usuarios")
@@ -551,6 +682,7 @@ class VentanaPrincipal(tk.Tk):
 
     def cargar_registros_en_tabla(self):
         log.debug("Cargando registros en tabla de usuarios")
+        self.limpiar_registros_tabla_usuarios()
         # Caragamos los registros de la base de datos
         self.registro_usuarios = UsuarioDAO.seleccionar()
         for registro in self.registro_usuarios:
@@ -559,53 +691,63 @@ class VentanaPrincipal(tk.Tk):
         # Asociar el evento SELECT a la tabla
         self.tabla_usuarios.bind('<<TreeviewSelect>>', self.cargar_registro_en_formulario)
 
+    def limpiar_registros_tabla_usuarios(self):
+        log.debug("Limpiando registros de la tabla de usuarios")
+        for item in self.tabla_usuarios.get_children():
+            self.tabla_usuarios.delete(item)
+
     def cargar_registro_en_formulario(self, event):
         log.debug("Cargando registro en formulario")
-        """
-        Cargar los datos del registro en el formulario
-        """
         self.limpiar_formulario_usuarios()
 
         # Obtener el id del registro seleccionado y cargar el nombre el formulario
         seleccion = self.tabla_usuarios.selection()
-        if seleccion:
-            item = self.tabla_usuarios.item(seleccion[0])
-            valores = item['values']
-            if valores:
-                self.id_cliente = valores[0]
+        if not seleccion:
+            log.debug("No se ha seleccionado ningún registro")
+            return
 
-                # Consultar los datos del usuario en la base de datos
-                usuario = UsuarioDAO.seleccionar_por_id(self.id_cliente)
-                if usuario:
-                    # Tupla: (id[0], nombre[1], apellido[2], correo[3], contraseña[4], rol[5], telefono[6])
+        id_cliente = self.tabla_usuarios.item(seleccion)['values'][0]
+        self.id_cliente = id_cliente
 
-                    # Mostrar los datos en el formulario
-                    self.habilitar_todos_los_campos_formulario_usuarios()
-                    self.txt_id_usuario.insert(0, usuario[0])  # Accessing tuple elements directly
-                    self.nombre_usuario.insert(0, f'{usuario[1]} {usuario[2]}')
-                    self.correo_usuario.insert(0, usuario[3])
-                    self.rol_usuario.insert(0, usuario[5])
-                    self.telefono_usuario.insert(0, usuario[6])
-                    # self.contraseña_usuario.insert(0, usuario[4])
-                    self.deshabilitar_todos_los_campos_formulario_usuarios()
+        # Consultar los datos del usuario en la base de datos
+        usuario = UsuarioDAO.seleccionar_por_id(id_usuario=self.id_cliente)
+        if usuario:
+            # Mostrar los datos en el formulario
+            self.habilitar_todos_los_campos_formulario_usuarios()
+            self.txt_id_usuario.delete(0, tk.END)
+            self.txt_id_usuario.insert(0, usuario[0])
+
+            self.txt_nombre_usuario.delete(0, tk.END)
+            self.txt_nombre_usuario.insert(0, f'{usuario[1]} {usuario[2]}')
+
+            self.txt_correo_usuario.delete(0, tk.END)
+            self.txt_correo_usuario.insert(0, usuario[3])
+
+            self.txt_rol_usuario.delete(0, tk.END)
+            self.txt_rol_usuario.insert(0, usuario[5])
+
+            self.txt_telefono_usuario.delete(0, tk.END)
+            self.txt_telefono_usuario.insert(0, usuario[6])
+
+            self.deshabilitar_todos_los_campos_formulario_usuarios()
 
     def habilitar_todos_los_campos_formulario_usuarios(self):
         log.debug("Habilitando todos los campos del formulario de usuarios")
         self.txt_id_usuario.config(state='normal')
-        self.nombre_usuario.config(state='normal')
-        self.correo_usuario.config(state='normal')
-        self.rol_usuario.config(state='normal')
-        self.telefono_usuario.config(state='normal')
-        self.contraseña_usuario.config(state='normal')
+        self.txt_nombre_usuario.config(state='normal')
+        self.txt_correo_usuario.config(state='normal')
+        self.txt_rol_usuario.config(state='normal')
+        self.txt_telefono_usuario.config(state='normal')
+        self.txt_contrasenna_usuario.config(state='normal')
 
     def deshabilitar_todos_los_campos_formulario_usuarios(self):
         log.debug("Deshabilitando todos los campos del formulario de usuarios")
         self.txt_id_usuario.config(state='disabled')
-        self.nombre_usuario.config(state='disabled')
-        self.correo_usuario.config(state='disabled')
-        self.rol_usuario.config(state='disabled')
-        self.telefono_usuario.config(state='disabled')
-        self.contraseña_usuario.config(state='disabled')
+        self.txt_nombre_usuario.config(state='disabled')
+        self.txt_correo_usuario.config(state='disabled')
+        self.txt_rol_usuario.config(state='disabled')
+        self.txt_telefono_usuario.config(state='disabled')
+        self.txt_contrasenna_usuario.config(state='disabled')
 
     def limpiar_formulario_usuarios(self):
         log.debug("Limpiando formulario de usuarios")
@@ -614,11 +756,11 @@ class VentanaPrincipal(tk.Tk):
         """
         self.habilitar_todos_los_campos_formulario_usuarios()
         self.txt_id_usuario.delete(0, tk.END)
-        self.nombre_usuario.delete(0, tk.END)
-        self.correo_usuario.delete(0, tk.END)
-        self.rol_usuario.delete(0, tk.END)
-        self.telefono_usuario.delete(0, tk.END)
-        self.contraseña_usuario.delete(0, tk.END)
+        self.txt_nombre_usuario.delete(0, tk.END)
+        self.txt_correo_usuario.delete(0, tk.END)
+        self.txt_rol_usuario.delete(0, tk.END)
+        self.txt_telefono_usuario.delete(0, tk.END)
+        self.txt_contrasenna_usuario.delete(0, tk.END)
         self.deshabilitar_todos_los_campos_formulario_usuarios()
 
     def mostrar_formulario_usuarios(self):
@@ -664,40 +806,40 @@ class VentanaPrincipal(tk.Tk):
                             fg=color_letra,
                             background=COLOR_FONDO)                     # Color de la letra del label
         lbl_nombre.grid(row=1, column=0, padx=pad, pady=pad)
-        self.nombre_usuario = ttk.Entry(self.frame_usuarios_formulario)
-        self.nombre_usuario.grid(row=1, column=1, padx=pad, pady=pad)
+        self.txt_nombre_usuario = ttk.Entry(self.frame_usuarios_formulario)
+        self.txt_nombre_usuario.grid(row=1, column=1, padx=pad, pady=pad)
 
         lbl_correo = tk.Label(self.frame_usuarios_formulario,  # Frame donde se encuentra el label
                             text='Correo',  # Texto del label                   # Color de fondo del label
                             fg=color_letra,
                             background=COLOR_FONDO)                     # Color de la letra del label
         lbl_correo.grid(row=2, column=0, padx=pad, pady=pad)
-        self.correo_usuario = ttk.Entry(self.frame_usuarios_formulario)
-        self.correo_usuario.grid(row=2, column=1, padx=pad, pady=pad)
+        self.txt_correo_usuario = ttk.Entry(self.frame_usuarios_formulario)
+        self.txt_correo_usuario.grid(row=2, column=1, padx=pad, pady=pad)
 
         lbl_rol = tk.Label(self.frame_usuarios_formulario,  # Frame donde se encuentra el label
                             text='Rol',  # Texto del label                   # Color de fondo del label
                             fg=color_letra,
                             background=COLOR_FONDO)                     # Color de la letra del label
         lbl_rol.grid(row=3, column=0, padx=pad, pady=pad)
-        self.rol_usuario = ttk.Entry(self.frame_usuarios_formulario)
-        self.rol_usuario.grid(row=3, column=1, padx=pad, pady=pad)
+        self.txt_rol_usuario = ttk.Entry(self.frame_usuarios_formulario)
+        self.txt_rol_usuario.grid(row=3, column=1, padx=pad, pady=pad)
 
         lbl_telefono = tk.Label(self.frame_usuarios_formulario,  # Frame donde se encuentra el label
                             text='Telefono',  # Texto del label                   # Color de fondo del label
                             fg=color_letra,
                             background=COLOR_FONDO)                     # Color de la letra del label
         lbl_telefono.grid(row=4, column=0, padx=pad, pady=pad)
-        self.telefono_usuario = ttk.Entry(self.frame_usuarios_formulario)
-        self.telefono_usuario.grid(row=4, column=1, padx=pad, pady=pad)
+        self.txt_telefono_usuario = ttk.Entry(self.frame_usuarios_formulario)
+        self.txt_telefono_usuario.grid(row=4, column=1, padx=pad, pady=pad)
 
         lbl_contraseña = tk.Label(self.frame_usuarios_formulario,  # Frame donde se encuentra el label
                             text='Contraseña',  # Texto del label                   # Color de fondo del label
                             fg=color_letra,
                             background=COLOR_FONDO)                     # Color de la letra del label
         lbl_contraseña.grid(row=0, column=3, padx=pad, pady=pad)
-        self.contraseña_usuario = ttk.Entry(self.frame_usuarios_formulario)
-        self.contraseña_usuario.grid(row=0, column=4, padx=pad, pady=pad)
+        self.txt_contrasenna_usuario = ttk.Entry(self.frame_usuarios_formulario)
+        self.txt_contrasenna_usuario.grid(row=0, column=4, padx=pad, pady=pad)
 
     # Fin de la clase VentanaPrincipal /////////////////////////////////////////////////////////////////////////////////
 
